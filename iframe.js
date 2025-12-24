@@ -2,9 +2,12 @@
 
 class DashboardIframe {
     constructor() {
-        const today = new Date().toISOString().split('T')[0];
-        this.selectedDateStart = today;
-        this.selectedDateEnd = today;
+        const today = new Date();
+        const oneMonthAgo = new Date(today);
+        oneMonthAgo.setMonth(today.getMonth() - 1);
+        
+        this.selectedDateStart = oneMonthAgo.toISOString().split('T')[0];
+        this.selectedDateEnd = today.toISOString().split('T')[0];
         this.config = null;
         this.locationId = null;
         this.init();
