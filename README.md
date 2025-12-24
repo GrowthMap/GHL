@@ -216,3 +216,4 @@ Each widget can have a custom color that appears as a top border.
 - Use `Promise.all()` for parallel requests
 - Return a string - numbers will be converted automatically
 
+# GHL
