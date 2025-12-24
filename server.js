@@ -34,9 +34,18 @@ async function initDatabase() {
                 )
             `);
             
+            // Verify table was created
+            const tableCheck = await pool.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'locations'
+                )
+            `);
+            
             db = pool;
             useDatabase = true;
             console.log('✅ Using PostgreSQL database for storage');
+            console.log('✅ Table "locations" exists:', tableCheck.rows[0].exists);
             return true;
         } catch (error) {
             console.error('⚠️  Failed to connect to PostgreSQL, falling back to file storage:', error.message);
