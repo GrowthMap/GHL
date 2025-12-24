@@ -28,9 +28,9 @@ Total Webinar Registrations
 curl -L 'https://services.leadconnectorhq.com/contacts/search' \
 -H 'Content-Type: application/json' \
 -H 'Version: 2021-07-28' \
--H 'Authorization: Bearer pit-6ef0dc9e-0216-4da6-b384-0be64cab8652' \
+-H 'Authorization: Bearer ' \
 -d '{
-  "locationId": "o525E31QSTYfIkbtnCqU",
+  "locationId": "",
   "page": 1,
   "pageLimit": 500,
   "filters": [
@@ -61,9 +61,9 @@ New Buyers From Webinar No show
 curl -L 'https://services.leadconnectorhq.com/contacts/search' \
 -H 'Content-Type: application/json' \
 -H 'Version: 2021-07-28' \
--H 'Authorization: Bearer pit-6ef0dc9e-0216-4da6-b384-0be64cab8652' \
+-H 'Authorization: Bearer ' \
 -d '{
-  "locationId": "o525E31QSTYfIkbtnCqU",
+  "locationId": "",
   "page": 1,
   "pageLimit": 500,
   "filters": [
