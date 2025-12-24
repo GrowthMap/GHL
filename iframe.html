@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Widget</title>
+    <link rel="stylesheet" href="iframe-styles.css">
+</head>
+<body>
+    <div class="iframe-container">
+        <div class="date-selector-container">
+            <label for="dateStart">Start Date:</label>
+            <input type="date" id="dateStart" />
+            <label for="dateEnd">End Date:</label>
+            <input type="date" id="dateEnd" />
+            <button class="btn btn-primary" id="refreshBtn">Refresh Data</button>
+        </div>
+
+        <div id="widgetsContainer" class="widgets-container">
+            <div class="loading-state" id="loadingState">
+                <p>Loading widgets...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="curl-parser.js"></script>
+    <script src="iframe.js"></script>
+</body>
+</html>
+

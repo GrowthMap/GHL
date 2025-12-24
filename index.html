@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHL Dashboard Iframe Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GHL Dashboard Iframe Manager</h1>
+            <p>Create and manage custom iframes for your GoHighLevel dashboard</p>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2>Locations</h2>
+                <button class="btn btn-primary" id="newLocationBtn">+ New Location</button>
+                <div id="locationsList" class="locations-list"></div>
+            </div>
+
+            <div class="content-area">
+                <div id="emptyState" class="empty-state">
+                    <p>Select a location or create a new one to get started</p>
+                </div>
+
+                <div id="locationEditor" class="location-editor" style="display: none;">
+                    <div class="editor-header">
+                        <h2 id="locationName">Location Name</h2>
+                        <div class="editor-actions">
+                            <button class="btn btn-secondary" id="previewBtn">Preview</button>
+                            <button class="btn btn-secondary" id="copyUrlBtn">Copy Iframe URL</button>
+                            <button class="btn btn-primary" id="saveBtn">Save Location</button>
+                            <button class="btn btn-danger" id="deleteBtn">Delete</button>
+                        </div>
+                    </div>
+
+                    <div class="editor-content">
+                        <div class="form-group">
+                            <label for="locationNameInput">Location Name</label>
+                            <input type="text" id="locationNameInput" placeholder="Enter location name">
+                        </div>
+
+                        <div class="widgets-section">
+                            <div class="section-header">
+                                <h3>Metric Widgets</h3>
+                                <button class="btn btn-primary btn-sm" id="addWidgetBtn">+ Add Widget</button>
+                            </div>
+
+                            <div id="widgetsList" class="widgets-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Widget Modal -->
+    <div id="widgetModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add Widget</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="widgetName">Widget Name</label>
+                    <input type="text" id="widgetName" placeholder="e.g., Total Revenue">
+                </div>
+
+                <div class="form-group">
+                    <label for="widgetCode">JavaScript Code</label>
+                    <textarea id="widgetCode" rows="12" placeholder="// Write your JavaScript code here&#10;// The code should return a string that will be displayed in the widget&#10;// Available variables: selectedDate (string), fetch (function)&#10;&#10;async function getWidgetData() {&#10;  // Your code here&#10;  // Make POST requests, do calculations, etc.&#10;  return 'Your result string';&#10;}&#10;&#10;return await getWidgetData();"></textarea>
+                    <small class="help-text">
+                        Write JavaScript code that returns a string. Available variables:
+                        <code>selectedDateStart</code>, <code>selectedDateEnd</code> (YYYY-MM-DD),
+                        <code>selectedDateGT</code>, <code>selectedDateLT</code> (ISO format for gt/lt queries),
+                        <code>fetch</code> (function), <code>locationId</code> (string).
+                        You can make multiple POST requests and perform custom calculations.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveWidgetBtn">Save Widget</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Iframe Preview</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <iframe id="previewIframe" src="iframe.html" style="width: 100%; height: 600px; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
