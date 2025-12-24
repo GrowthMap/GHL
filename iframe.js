@@ -76,10 +76,19 @@ class DashboardIframe {
             console.error('Error accessing localStorage for current location:', e);
         }
         
+        // If we have a locationId but no config yet, try to fetch from API
+        if (this.locationId && !this.config) {
+            this.fetchConfigFromAPI();
+            return; // fetchConfigFromAPI will handle rendering
+        }
+        
         // No configuration found
         console.error('No configuration found. locationId:', this.locationId);
-        document.getElementById('widgetsContainer').innerHTML = 
-            '<div class="loading-state"><p>No configuration found. Please configure widgets in the main app or provide a locationId parameter.</p><p style="font-size: 12px; margin-top: 10px; color: #666;">Check browser console for details.</p></div>';
+        
+        // Show error (fetchConfigFromAPI was already called if locationId exists)
+        if (!this.locationId) {
+            this.showConfigError();
+        }
     }
 
     setupDateSelector() {
@@ -239,6 +248,76 @@ class DashboardIframe {
             errorDiv.textContent = error.message;
             widgetElement.querySelector('.widget-content').appendChild(errorDiv);
         }
+    }
+
+    async fetchConfigFromAPI() {
+        if (!this.locationId) {
+            this.showConfigError('No locationId provided');
+            return;
+        }
+
+        const container = document.getElementById('widgetsContainer');
+        container.innerHTML = '<div class="loading-state"><p>Loading configuration...</p></div>';
+
+        try {
+            // Try to fetch from API endpoint
+            // Construct API URL from current origin
+            const apiUrl = `${window.location.origin}${window.location.pathname.replace('iframe.html', '')}api/config/${this.locationId}`;
+            
+            console.log('Attempting to fetch config from API:', apiUrl);
+            const response = await fetch(apiUrl);
+            
+            if (response.ok) {
+                this.config = await response.json();
+                console.log('Loaded config from API');
+                this.renderWidgets();
+                return;
+            } else if (response.status === 404) {
+                // API endpoint doesn't exist, show helpful message
+                this.showConfigError('API endpoint not available. Configuration must be provided via URL parameter or localStorage.');
+            } else {
+                throw new Error(`HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error fetching config from API:', error);
+            // API fetch failed, show error
+            this.showConfigError('Could not load configuration. API endpoint may not be available.');
+        }
+    }
+
+    showConfigError(customMessage = null) {
+        const container = document.getElementById('widgetsContainer');
+        
+        // Check if we're in a cross-origin iframe
+        let errorMessage = '<div class="loading-state">';
+        errorMessage += '<p><strong>No configuration found.</strong></p>';
+        errorMessage += '<p style="font-size: 14px; margin-top: 10px;">';
+        
+        if (customMessage) {
+            errorMessage += customMessage;
+        } else {
+            try {
+                // Try to access parent to see if we're in an iframe
+                if (window.parent !== window) {
+                    errorMessage += 'The iframe is embedded cross-origin and cannot access localStorage.<br>';
+                    errorMessage += 'The configuration is too large to include in the URL.<br><br>';
+                    errorMessage += '<strong>Solution:</strong> Implement a backend API endpoint at <code>/api/config/:locationId</code> to serve configurations.';
+                } else {
+                    errorMessage += 'Please configure widgets in the main app or provide a locationId parameter.';
+                }
+            } catch (e) {
+                // Cross-origin error accessing parent
+                errorMessage += 'The iframe is embedded cross-origin and cannot access localStorage.<br>';
+                errorMessage += 'The configuration is too large to include in the URL.<br><br>';
+                errorMessage += '<strong>Solution:</strong> Implement a backend API endpoint at <code>/api/config/:locationId</code> to serve configurations.';
+            }
+        }
+        
+        errorMessage += '</p>';
+        errorMessage += '<p style="font-size: 12px; margin-top: 10px; color: #666;">Location ID: ' + (this.locationId || 'none') + '</p>';
+        errorMessage += '</div>';
+        
+        container.innerHTML = errorMessage;
     }
 
     escapeHtml(text) {

@@ -2,24 +2,56 @@
 
 class IframeManager {
     constructor() {
-        this.locations = this.loadLocations();
+        this.locations = [];
         this.currentLocationId = null;
         this.editingWidgetId = null;
         this.init();
     }
 
-    init() {
+    async init() {
+        this.locations = await this.loadLocations();
         this.renderLocations();
         this.attachEventListeners();
     }
 
-    loadLocations() {
+    async loadLocations() {
+        try {
+            const response = await fetch('/api/locations');
+            if (response.ok) {
+                const locations = await response.json();
+                // Also save to localStorage as backup
+                localStorage.setItem('ghl-locations', JSON.stringify(locations));
+                return locations;
+            }
+        } catch (error) {
+            console.error('Error loading from API, using localStorage:', error);
+        }
+        
+        // Fallback to localStorage
         const saved = localStorage.getItem('ghl-locations');
         return saved ? JSON.parse(saved) : [];
     }
 
-    saveLocations() {
+    async saveLocations() {
+        try {
+            const response = await fetch('/api/locations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.locations)
+            });
+            
+            if (response.ok) {
+                // Also save to localStorage as backup
+                localStorage.setItem('ghl-locations', JSON.stringify(this.locations));
+                return true;
+            }
+        } catch (error) {
+            console.error('Error saving to API, using localStorage:', error);
+        }
+        
+        // Fallback to localStorage
         localStorage.setItem('ghl-locations', JSON.stringify(this.locations));
+        return false;
     }
 
     renderLocations() {
@@ -55,6 +87,7 @@ class IframeManager {
         document.getElementById('locationEditor').style.display = 'block';
         document.getElementById('locationName').textContent = location.name;
         document.getElementById('locationNameInput').value = location.name;
+        document.getElementById('locationIdDisplay').value = location.id;
 
         this.renderWidgets(location.widgets);
         this.renderLocations();
@@ -144,18 +177,36 @@ class IframeManager {
         });
     }
 
-    createNewLocation() {
+    async createNewLocation() {
+        const locationId = prompt('Enter Location ID:');
+        if (!locationId || !locationId.trim()) {
+            alert('Location ID is required');
+            return;
+        }
+
         const name = prompt('Enter location name:');
-        if (!name) return;
+        if (!name || !name.trim()) {
+            alert('Location name is required');
+            return;
+        }
+
+        const trimmedId = locationId.trim();
+        const trimmedName = name.trim();
+
+        // Check if location ID already exists
+        if (this.locations.find(l => l.id === trimmedId)) {
+            alert('Location ID already exists. Please use a different ID.');
+            return;
+        }
 
         const location = {
-            id: Date.now().toString(),
-            name: name.trim(),
+            id: trimmedId,
+            name: trimmedName,
             widgets: []
         };
 
         this.locations.push(location);
-        this.saveLocations();
+        await this.saveLocations();
         this.selectLocation(location.id);
     }
 
@@ -178,13 +229,13 @@ class IframeManager {
         alert('Location saved successfully!');
     }
 
-    deleteCurrentLocation() {
+    async deleteCurrentLocation() {
         if (!this.currentLocationId) return;
 
         if (!confirm('Are you sure you want to delete this location?')) return;
 
         this.locations = this.locations.filter(l => l.id !== this.currentLocationId);
-        this.saveLocations();
+        await this.saveLocations();
         this.currentLocationId = null;
 
         document.getElementById('emptyState').style.display = 'block';
@@ -282,7 +333,7 @@ return await getWidgetData();`;
             location.widgets.push(widget);
         }
 
-        this.saveLocations();
+        await this.saveLocations();
         this.renderWidgets(location.widgets);
         this.closeWidgetModal();
     }
@@ -291,12 +342,12 @@ return await getWidgetData();`;
         this.openWidgetModal(index);
     }
 
-    deleteWidget(index) {
+    async deleteWidget(index) {
         if (!confirm('Are you sure you want to delete this widget?')) return;
 
         const location = this.locations.find(l => l.id === this.currentLocationId);
         location.widgets.splice(index, 1);
-        this.saveLocations();
+        await this.saveLocations();
         this.renderWidgets(location.widgets);
     }
 
@@ -336,12 +387,21 @@ return await getWidgetData();`;
         
         baseUrl = baseUrl + pathname;
         
-        // Encode the full config as base64 for cross-origin embedding
-        // This ensures it works even when localStorage isn't accessible
+        // Only include config in URL if it's small enough (under 1500 chars to be safe)
+        // Large configs will rely on localStorage (same-origin) or need alternative method
         try {
             const configJson = JSON.stringify(location);
             const encodedConfig = btoa(encodeURIComponent(configJson));
-            return `${baseUrl}iframe.html?locationId=${locationId}&config=${encodedConfig}`;
+            const fullUrl = `${baseUrl}iframe.html?locationId=${locationId}&config=${encodedConfig}`;
+            
+            // Check if URL is too long (browsers typically limit to 2048-8192 chars)
+            // If too long, omit config and rely on localStorage
+            if (fullUrl.length > 2000) {
+                console.warn('Config too large for URL, will rely on localStorage');
+                return `${baseUrl}iframe.html?locationId=${locationId}`;
+            }
+            
+            return fullUrl;
         } catch (e) {
             console.error('Error encoding config:', e);
             // Fallback to just locationId
@@ -361,9 +421,23 @@ return await getWidgetData();`;
             return;
         }
 
+        // Check if config was included in URL
+        const configIncluded = url.includes('&config=');
+        let message = 'Iframe URL copied to clipboard!\n\n';
+        
+        if (!configIncluded) {
+            message += '⚠️ WARNING: Configuration is too large for URL.\n';
+            message += 'The iframe will try to load from localStorage.\n';
+            message += 'For cross-origin embedding, you may need to:\n';
+            message += '1. Host the iframe on the same domain, OR\n';
+            message += '2. Implement a backend API to serve configurations\n\n';
+        }
+        
+        message += 'URL: ' + url.substring(0, 100) + (url.length > 100 ? '...' : '');
+
         // Copy to clipboard
         navigator.clipboard.writeText(url).then(() => {
-            alert('Iframe URL copied to clipboard!\n\nUse this URL to embed in GoHighLevel:\n' + url);
+            alert(message);
         }).catch(err => {
             // Fallback for older browsers
             const textarea = document.createElement('textarea');
@@ -372,7 +446,7 @@ return await getWidgetData();`;
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
-            alert('Iframe URL copied to clipboard!\n\nUse this URL to embed in GoHighLevel:\n' + url);
+            alert(message);
         });
     }
 
