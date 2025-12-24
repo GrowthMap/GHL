@@ -21,36 +21,65 @@ class DashboardIframe {
         const urlParams = new URLSearchParams(window.location.search);
         this.locationId = urlParams.get('locationId');
         
-        // Get configuration from localStorage
+        // Try to get config from URL parameter (base64 encoded) - for cross-origin embedding
+        const configParam = urlParams.get('config');
+        if (configParam) {
+            try {
+                const decoded = decodeURIComponent(atob(configParam));
+                this.config = JSON.parse(decoded);
+                if (this.config && this.config.id) {
+                    this.locationId = this.config.id;
+                }
+                console.log('Loaded config from URL parameter');
+                return;
+            } catch (e) {
+                console.error('Error parsing config from URL:', e);
+            }
+        }
+        
+        // Get configuration from localStorage (works for same-origin)
         let configStr = null;
         
         if (this.locationId) {
-            // Load specific location by ID
-            const allLocations = JSON.parse(localStorage.getItem('ghl-locations') || '[]');
-            const location = allLocations.find(l => l.id === this.locationId);
-            if (location) {
-                this.config = location;
-                return;
+            try {
+                // Load specific location by ID
+                const allLocations = JSON.parse(localStorage.getItem('ghl-locations') || '[]');
+                const location = allLocations.find(l => l.id === this.locationId);
+                if (location) {
+                    this.config = location;
+                    console.log('Loaded config from localStorage by locationId:', this.locationId);
+                    return;
+                } else {
+                    console.warn('Location not found in localStorage:', this.locationId);
+                }
+            } catch (e) {
+                console.error('Error accessing localStorage:', e);
             }
         }
         
         // Fallback to current location (for preview mode)
-        configStr = localStorage.getItem('ghl-current-location');
-        if (configStr) {
-            try {
-                this.config = JSON.parse(configStr);
-                if (this.config && this.config.id) {
-                    this.locationId = this.config.id;
+        try {
+            configStr = localStorage.getItem('ghl-current-location');
+            if (configStr) {
+                try {
+                    this.config = JSON.parse(configStr);
+                    if (this.config && this.config.id) {
+                        this.locationId = this.config.id;
+                    }
+                    console.log('Loaded config from ghl-current-location');
+                    return;
+                } catch (e) {
+                    console.error('Error parsing config:', e);
                 }
-                return;
-            } catch (e) {
-                console.error('Error parsing config:', e);
             }
+        } catch (e) {
+            console.error('Error accessing localStorage for current location:', e);
         }
         
         // No configuration found
+        console.error('No configuration found. locationId:', this.locationId);
         document.getElementById('widgetsContainer').innerHTML = 
-            '<div class="loading-state"><p>No configuration found. Please configure widgets in the main app or provide a locationId parameter.</p></div>';
+            '<div class="loading-state"><p>No configuration found. Please configure widgets in the main app or provide a locationId parameter.</p><p style="font-size: 12px; margin-top: 10px; color: #666;">Check browser console for details.</p></div>';
     }
 
     setupDateSelector() {
@@ -111,14 +140,25 @@ class DashboardIframe {
     renderWidgets() {
         const container = document.getElementById('widgetsContainer');
         
-        if (!this.config || !this.config.widgets || this.config.widgets.length === 0) {
+        console.log('renderWidgets called. Config:', this.config);
+        
+        if (!this.config) {
+            console.error('No config available');
+            container.innerHTML = '<div class="loading-state"><p>No configuration loaded.</p></div>';
+            return;
+        }
+        
+        if (!this.config.widgets || this.config.widgets.length === 0) {
+            console.warn('Config loaded but no widgets found');
             container.innerHTML = '<div class="loading-state"><p>No widgets configured.</p></div>';
             return;
         }
 
+        console.log(`Rendering ${this.config.widgets.length} widget(s)`);
         container.innerHTML = '';
 
-        this.config.widgets.forEach(widget => {
+        this.config.widgets.forEach((widget, index) => {
+            console.log(`Creating widget ${index + 1}:`, widget.name);
             const widgetElement = this.createWidgetElement(widget);
             container.appendChild(widgetElement);
             this.executeWidgetCode(widget, widgetElement);

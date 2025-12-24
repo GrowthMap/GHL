@@ -325,8 +325,28 @@ return await getWidgetData();`;
         if (!location) return null;
         
         // Get current page URL to construct absolute path
-        const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
-        return `${baseUrl}iframe.html?locationId=${locationId}`;
+        let baseUrl = window.location.origin;
+        let pathname = window.location.pathname;
+        
+        // Remove index.html or index from pathname, ensure trailing slash
+        pathname = pathname.replace(/\/?(index\.html|index)?\/?$/, '');
+        if (!pathname.endsWith('/')) {
+            pathname += '/';
+        }
+        
+        baseUrl = baseUrl + pathname;
+        
+        // Encode the full config as base64 for cross-origin embedding
+        // This ensures it works even when localStorage isn't accessible
+        try {
+            const configJson = JSON.stringify(location);
+            const encodedConfig = btoa(encodeURIComponent(configJson));
+            return `${baseUrl}iframe.html?locationId=${locationId}&config=${encodedConfig}`;
+        } catch (e) {
+            console.error('Error encoding config:', e);
+            // Fallback to just locationId
+            return `${baseUrl}iframe.html?locationId=${locationId}`;
+        }
     }
 
     copyIframeUrl() {
