@@ -97,13 +97,12 @@ class DashboardIframe {
     setupDateSelector() {
         const dateStartInput = document.getElementById('dateStart');
         const dateEndInput = document.getElementById('dateEnd');
-        const maxDate = new Date().toISOString().split('T')[0]; // Prevent future dates
-
+        // No max date: allow selecting future dates
         dateStartInput.value = this.selectedDateStart;
-        dateStartInput.max = maxDate;
-        
+        dateStartInput.removeAttribute('max');
+
         dateEndInput.value = this.selectedDateEnd;
-        dateEndInput.max = maxDate;
+        dateEndInput.removeAttribute('max');
 
         // Update end date min to be at least the start date
         dateStartInput.addEventListener('change', (e) => {
